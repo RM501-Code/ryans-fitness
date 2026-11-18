@@ -280,6 +280,7 @@ const GOALS=[
   {d:'2027-07-03',name:'Sweden',sub:'Visible abs'}
 ];
 const SEED={'2026-09-22':{w:107,bf:27.2},'2026-11-16':{w:104.2,bf:25.8}};
+const SEED2={'2026-10-19':{w:105.3,bf:26.7},'2026-10-21':{w:104.15,bf:26.3},'2026-10-26':{w:105.6,bf:26.8},'2026-11-09':{w:104.9,bf:26.5},'2026-11-10':{w:104.9,bf:26.5},'2026-11-11':{w:104.4,bf:26.4},'2026-11-13':{w:105.1,bf:26.6},'2026-11-15':{w:104.2,bf:25.8},'2026-11-16':{w:104.2,bf:25.8},'2026-11-17':{w:104.2,bf:25.8},'2026-11-18':{w:104.2,bf:25.8}};
 const SEED_M={'2026-09':{d:'2026-09-22',waist:41.73}};
 const PHYSIO=[
   {id:'ext',name:'Band external rotations',tag:'Shoulders'},
@@ -322,6 +323,7 @@ function load(){
   if(!S||typeof S!=='object'||!S.days)S={days:{},physio:{}};
   if(!S.physio)S.physio={};
   if(!S.monthly){S.monthly=JSON.parse(JSON.stringify(SEED_M))}
+  if(!S.seeded2){for(const k in SEED2){const r=S.days[k]=S.days[k]||{};if(!(r.w>0)){r.w=SEED2[k].w;r.bf=SEED2[k].bf}}S.seeded2=true;save()}
   if(!S.seeded){for(const k in SEED){S.days[k]=Object.assign({},SEED[k],S.days[k]||{})}S.seeded=true;save()}
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('Couldn’t save — storage full?')}}
@@ -799,7 +801,7 @@ function backup(){
 function restore(){
   const m=modal(`<h3>Restore</h3><p>Replaces everything on this phone with the backup.</p><button class="btn" id="rsF">Choose backup file</button>
     <textarea id="rsT" placeholder="…or paste backup text here" style="margin-top:12px"></textarea><button class="btn sec2" id="rsP" style="margin-top:10px">Restore pasted text</button><button class="btn sec2" data-close>Cancel</button>`);
-  const apply=txt=>{try{const d=JSON.parse(txt);if(!d||!d.days)throw 0;S=d;S.seeded=true;if(!S.physio)S.physio={};save();m.remove();render();toast('Restored')}catch(e){toast('That backup didn’t read properly')}};
+  const apply=txt=>{try{const d=JSON.parse(txt);if(!d||!d.days)throw 0;S=d;S.seeded=true;S.seeded2=true;if(!S.physio)S.physio={};save();m.remove();render();toast('Restored')}catch(e){toast('That backup didn’t read properly')}};
   m.querySelector('#rsF').onclick=()=>{const inp=document.getElementById('restoreIn');inp.onchange=e=>{const f=e.target.files[0];e.target.value='';if(!f)return;f.text().then(apply)};inp.click()};
   m.querySelector('#rsP').onclick=()=>apply(m.querySelector('#rsT').value);
 }
