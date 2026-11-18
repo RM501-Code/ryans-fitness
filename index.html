@@ -108,6 +108,10 @@ h1{font-size:34px;font-weight:700;letter-spacing:.3px;margin:2px 0 0;line-height
 .tile.off-bad .chk{background:var(--red);border-color:var(--red)}
 .tile.off-bad .chk svg{opacity:1;transform:none}
 .tile.off-bad{background:color-mix(in srgb,var(--red) calc(var(--onTint)*100%),transparent)}
+.skipb{color:var(--blue);font-weight:600;padding:6px 2px}
+.tile.skipped{opacity:.75}
+.skiprow{font-size:14px;color:var(--text2);padding:4px 4px 2px;text-align:left}.skiprow b{color:var(--blue);font-weight:600}
+.tile.skipped .t1{text-decoration:line-through;text-decoration-color:var(--text3)}
 .rest{display:flex;align-items:center;gap:12px;padding:6px 2px;color:var(--text2)}
 
 /* supplements */
@@ -327,14 +331,17 @@ const recW=k=>S.days[k]||(S.days[k]={});
 /* ---------- scoring ---------- */
 function hasEve(r){
   if(!r)return false;
-  return ['steps','kcal','protein','water'].some(f=>r[f]>0)||['gym','run','sport','physio','elec','creat','vitd','mag','zeroBroken','sleep','hunger'].some(f=>r[f])||r.alcohol>0||!!(r.notes&&r.notes.trim())||!!(r.pain&&Object.keys(r.pain).length);
+  return ['steps','kcal','protein','water'].some(f=>r[f]>0)||['gym','run','sport','physio','skip','elec','creat','vitd','mag','zeroBroken','sleep','hunger'].some(f=>r[f])||r.alcohol>0||!!(r.notes&&r.notes.trim())||!!(r.pain&&Object.keys(r.pain).length);
 }
 const zeroOK=r=>!r.zeroBroken&&!(r.alcohol>0);
 const suppOK=r=>!!(r.elec&&r.creat&&r.vitd&&r.mag);
-const trainOK=(k,r)=>{const p=planFor(k);return(!p.gym||!!r.gym)&&(!p.run||!!r.run)};
+const isSkip=(r,f)=>!!(r&&r.skip&&r.skip[f]);
+const activeSess=(k,r)=>{const p=planFor(k);return['run','gym'].filter(f=>p[f]&&!isSkip(r,f))};
+const trainOK=(k,r)=>activeSess(k,r).every(f=>!!r[f]);
+const SKIP_R=['Injury','Illness','Planned rest','Other'];
 function boxes(k,r){
   r=r||{};const p=planFor(k),rel=RELAX.has(k),b=[];
-  if(p.gym||p.run)b.push(['Training',trainOK(k,r)]);
+  if(activeSess(k,r).length)b.push(['Training',trainOK(k,r)]);
   b.push(['Steps',(r.steps||0)>=stepsT(k)]);
   b.push(['Physio',!!r.physio]);
   if(!rel)b.push(['Calories',r.kcal>0&&r.kcal<=T.kcal]);
@@ -347,7 +354,7 @@ function boxes(k,r){
 const scoreOf=(k,r)=>{const b=boxes(k,r);const h=b.filter(x=>x[1]).length;return{b,h,n:b.length,pct:Math.round(h/b.length*100),miss:b.length-h}};
 
 const STREAKS=[
-  {id:'train',name:'Training',app:k=>{const p=planFor(k);return!!(p.gym||p.run)},hit:(k,r)=>trainOK(k,r)},
+  {id:'train',name:'Training',app:(k,r)=>activeSess(k,r).length>0,hit:(k,r)=>trainOK(k,r)},
   {id:'physio',name:'Physio',app:()=>true,hit:(k,r)=>!!r.physio},
   {id:'zero',name:'Zero list',app:k=>!RELAX.has(k),hit:(k,r)=>zeroOK(r)}
 ];
@@ -355,7 +362,7 @@ function streak(s){
   const t=todayK();const keys=Object.keys(S.days).filter(k=>k<=t&&hasEve(S.days[k])).sort();
   let c=0,m=0;
   for(const k of keys){
-    if(!s.app(k))continue;
+    if(!s.app(k,S.days[k]))continue;
     const h=s.hit(k,S.days[k]);
     if(k===t&&!h)continue; // today still pending
     if(h){c++;m=0}else{m++;if(m>=2)c=0}
@@ -413,8 +420,9 @@ function dailyReport(k){
   L.push(`Morning Weight: ${r.w?f1(r.w)+'kg':'not logged'}`);
   L.push(`Morning Body Fat: ${r.bf?f1(r.bf)+'%':'not logged'}`);
   L.push('');
-  L.push(`Gym: ${p.gym?`${p.gym} ${yn(r.gym)}`:'not planned'}`);
-  L.push(`Run: ${p.run?`${p.run} ${yn(r.run)}`:'not planned'}`);
+  const sl=(f)=>p[f]?(isSkip(r,f)?`${p[f]} – skipped (${r.skip[f].toLowerCase()})`:`${p[f]} ${yn(r[f])}`):'not planned';
+  L.push(`Gym: ${sl('gym')}`);
+  L.push(`Run: ${sl('run')}`);
   if(p.sport)L.push(`Football / golf: ${r.sport?'yes':'no'}`);
   L.push(`Steps: ${r.steps?thou(r.steps):'not logged'} (target ${thou(stepsT(k))})`);
   L.push(`Physio: ${r.physio?'done':'not done'}`);
@@ -443,7 +451,7 @@ function weekStats(end){
   const o={keys,logged,n:logged.length};
   o.w=avgAt(end);o.wPrev=avgAt(addD(end,-7));
   o.bf=avgAt(end,'bf');o.bfPrev=avgAt(addD(end,-7),'bf');
-  let sp=0,sd=0;logged.forEach(k=>{const p=planFor(k),r=S.days[k];if(p.gym){sp++;if(r.gym)sd++}if(p.run){sp++;if(r.run)sd++}});
+  let sp=0,sd=0;o.skips=[];logged.forEach(k=>{const r=S.days[k];activeSess(k,r).forEach(f=>{sp++;if(r[f])sd++});['run','gym'].forEach(f=>{if(planFor(k)[f]&&isSkip(r,f))o.skips.push(r.skip[f].toLowerCase())})});
   o.sessPlan=sp;o.sessDone=sd;
   const cnt=(fn)=>logged.filter(k=>fn(k,S.days[k])).length;
   const av=(f,ks=logged)=>{const v=ks.map(k=>S.days[k][f]).filter(x=>x>0);return v.length?mean(v):null};
@@ -473,7 +481,8 @@ function weeklyReport(){
   const tr=trend();if(tr)L.push(`Trend: ${sgn(tr.r,f2)}kg/wk (${tr.src})${tooFast()?' – faster than 1kg/wk, muscle-loss risk':''}`);
   const ml=mList();if(ml.length){const a=ml[0],b=ml[ml.length-1];L.push(`Waist: ${b.waist}in (${fmtS(b.d)})${ml.length>1?`, ${sgn(b.waist-a.waist,x=>x.toFixed(2))}in since ${fmtS(a.d)}`:''}`)}
   L.push('');
-  L.push(`Sessions: ${o.sessDone}/${o.sessPlan} planned`);
+  L.push(`Sessions: ${o.sessDone}/${o.sessPlan} planned${o.skips.length?` · ${o.skips.length} skipped (${[...new Set(o.skips)].join(', ')})`:''}`);
+  if(o.skips.length>=3)L.push(`⚠ ${o.skips.length} skips this week – that's a pattern, not a one-off`);
   L.push(`Physio: ${o.physio}/${n}`);
   L.push(`Steps: ${o.steps?'avg '+thou(o.steps):'—'} · target hit ${o.stepsHit}/${n}`);
   L.push(`Calories: ${o.kcal?'avg '+thou(o.kcal):'—'} · on target ${o.kcalHit}/${o.nonRel}`);
@@ -587,9 +596,14 @@ function rToday(){
 
   <div class="sec">Training</div>
   <div class="card"><div class="tiles">`;
-  if(p.run)h+=tile('run',p.run,'Run','<span style="width:19px;height:19px;display:block">'+IC.run+'</span>','var(--green)',r.run);
-  if(p.gym)h+=tile('gym',p.gym,'Gym · logged in Strong','<span style="width:19px;height:19px;display:block">'+IC.gym+'</span>','var(--blue)',r.gym);
+  const sess=(f,name,sub,icon,col)=>{
+    if(isSkip(r,f))return `<button class="tile skipped" data-unskip="${f}"><span class="ic" style="background:var(--text3)">${icon}</span><span class="tx"><div class="t1">${name}</div><div class="t2">Skipped · ${esc(r.skip[f])} · not scored</div></span><span class="skipb">Undo</span></button>`;
+    return tile(f,name,sub,icon,col,r[f]);};
+  if(p.run)h+=sess('run',p.run,'Run','<span style="width:19px;height:19px;display:block">'+IC.run+'</span>','var(--green)');
+  if(p.gym)h+=sess('gym',p.gym,'Strong app','<span style="width:19px;height:19px;display:block">'+IC.gym+'</span>','var(--blue)');
   if(p.sport)h+=tile('sport',p.sport,'Optional · not scored','<span style="width:19px;height:19px;display:block">'+IC.ball+'</span>','var(--indigo)',r.sport);
+  const canSkip=['run','gym'].filter(f=>p[f]&&!isSkip(r,f)&&!r[f]);
+  if(canSkip.length)h+=`<button class="skiprow" data-skip>Can’t train today? <b>Skip a session</b></button>`;
   if(!p.run&&!p.gym)h+=`<div class="rest"><span style="font-size:28px">😴</span><div><div style="font-weight:600;color:var(--text)">Rest day</div><div class="small">Nothing planned. Still hit your steps.</div></div></div>`;
   h+=tile('physio','Physio','10 min · shoulders first','<span style="width:19px;height:19px;display:block">'+IC.stretch+'</span>','var(--indigo)',r.physio);
   h+=`</div><div style="margin-top:10px">${fieldHTML('steps','Steps','','0','numeric',`/ ${thou(stepsT(k))}`)}</div></div>
@@ -799,9 +813,13 @@ function render(){
 function go(tab){if(tab!=='today')view.forceMonthly=false;if(view.tab===tab){window.scrollTo({top:0,behavior:'smooth'});return}view.tab=tab;if(tab==='today')view.day=todayK();try{history.replaceState(null,'','#'+tab)}catch(e){location.hash=tab}window.scrollTo(0,0);render()}
 
 document.addEventListener('click',e=>{
-  const el=e.target.closest('[data-tab],[data-nav],[data-t],[data-step],[data-allsupp],[data-copy],[data-range],[data-ph],[data-backup],[data-restore],[data-rate],[data-closeday],[data-mph],[data-mopen],[data-mnew],[data-pv]');if(!el)return;
+  const el=e.target.closest('[data-tab],[data-nav],[data-t],[data-step],[data-allsupp],[data-copy],[data-range],[data-ph],[data-backup],[data-restore],[data-rate],[data-closeday],[data-mph],[data-mopen],[data-mnew],[data-pv],[data-skip],[data-unskip],[data-skipr]');if(!el)return;
   const ds=el.dataset;
   if(ds.tab)return go(ds.tab);
+  if(ds.skip!==undefined){const p=planFor(view.day),r=rec(view.day);const fs=['run','gym'].filter(f=>p[f]&&!isSkip(r,f)&&!r[f]);
+    modal(`<h3>Skip a session</h3><p>A skip isn’t a miss — it won’t hit your score or streak. It still shows in your reports.</p>${fs.map(f=>`<div class="sec" style="margin:16px 4px 8px">${esc(p[f])}</div><div class="supps">${SKIP_R.map(x=>`<button class="sup" data-skipr="${f}" data-v="${x}">${x}</button>`).join('')}</div>`).join('')}<button class="btn sec2" data-close style="margin-top:16px">Cancel</button>`);return}
+  if(ds.skipr){const r=recW(view.day);r.skip=r.skip||{};r.skip[ds.skipr]=ds.v;delete r[ds.skipr];save();document.querySelector('.modal')?.remove();const y=window.scrollY;rToday();window.scrollTo(0,y);toast('Skipped · '+ds.v);return}
+  if(ds.unskip){const r=recW(view.day);if(r.skip){delete r.skip[ds.unskip];if(!Object.keys(r.skip).length)delete r.skip}save();const y=window.scrollY;rToday();window.scrollTo(0,y);return}
   if(ds.rate){const r=recW(view.day),v=+ds.v;r[ds.rate]=r[ds.rate]===v?undefined:v;if(r[ds.rate]===undefined)delete r[ds.rate];save();const y=window.scrollY;rToday();window.scrollTo(0,y);return}
   if(ds.closeday!==undefined){const r=recW(view.day);r.closed=true;save();copyText(dailyReport(view.day),'Day closed — report copied');const y=window.scrollY;rToday();window.scrollTo(0,y);return}
   if(ds.mph!==undefined){photoFor='monthly';document.getElementById('photoIn').click();return}
