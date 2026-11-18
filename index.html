@@ -84,6 +84,8 @@ h1{font-size:34px;font-weight:700;letter-spacing:.3px;margin:2px 0 0;line-height
 .stepper{display:flex;align-items:center;justify-content:space-between;background:var(--fill2);border-radius:16px;padding:10px 10px 10px 14px}
 .stepper .fl{font-size:13px;font-weight:600;color:var(--text2)}
 .stepper .v{font-family:ui-rounded,"SF Pro Rounded",-apple-system,sans-serif;font-weight:700;font-size:30px;font-variant-numeric:tabular-nums}
+.stepper .v .sin{font:inherit;color:inherit;border:0;background:transparent;outline:none;width:4ch;padding:0;field-sizing:content;min-width:1.2ch}
+.stepper .v .sin::placeholder{color:var(--text3)}
 .stepper .v small{font-size:15px;color:var(--text3);font-weight:600;margin-left:2px}
 .sbtns{display:flex;gap:8px}
 .sbtn{width:44px;height:44px;border-radius:22px;background:var(--fill);display:grid;place-items:center;font-size:24px;font-weight:500;color:var(--blue)}
@@ -563,7 +565,8 @@ function tile(f,t1,t2,icon,color,on,extraClass=''){
   return `<button class="tile ${on?'on':''} ${extraClass}" data-t="${f}" style="--c:${color}"><span class="ic" style="background:${color}">${icon}</span><span class="tx"><div class="t1">${t1}</div>${t2?`<div class="t2">${t2}</div>`:''}</span><span class="chk">${extraClass.includes('off-bad')?IC.x:IC.check}</span></button>`;
 }
 function stepper(f,label,unit,v,dec){
-  return `<div class="stepper"><div><div class="fl">${label}</div><div class="v num" data-sv="${f}">${dec?f2(v||0).replace(/0$/,''):(v||0)}<small>${unit}</small></div></div>
+  const val=dec?`<input data-f="${f}" inputmode="decimal" enterkeyhint="done" autocomplete="off" placeholder="0.0" value="${v>0?v:''}" class="sin">`:(v||0);
+  return `<div class="stepper"><div style="min-width:0;flex:1"><div class="fl">${label}</div><div class="v num" data-sv="${f}">${val}<small>${unit}</small></div></div>
     <div class="sbtns"><button class="sbtn" data-step="${f}" data-d="-1">−</button><button class="sbtn" data-step="${f}" data-d="1">+</button></div></div>`;
 }
 function tgtState(f,k,r){
