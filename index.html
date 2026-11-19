@@ -204,6 +204,12 @@ textarea{width:100%;min-height:84px;border:0;border-radius:16px;background:var(-
 .tag{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:2px 7px;border-radius:6px;background:color-mix(in srgb,var(--indigo) 16%,transparent);color:var(--indigo)}
 .px input{width:100%;border:0;background:var(--fill2);border-radius:10px;padding:9px 11px;margin-top:8px;font-size:15px;outline:none}
 .px input::placeholder{color:var(--text3)}
+.px input.pinstr{background:transparent;padding:4px 0 0;margin-top:4px;font-size:14px;color:var(--text2)}
+.plast{font-size:12.5px;color:var(--text3);margin-top:6px;line-height:1.35}
+.ph{color:var(--indigo)}
+.ph .pxa{width:100%;height:100%;padding:6px}
+.phb{position:absolute;right:4px;bottom:4px;width:22px;height:22px;border-radius:11px;background:var(--card);display:grid;place-items:center;color:var(--text2);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.phb svg{width:13px!important;height:13px!important}
 
 /* tab bar */
 .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--bar);-webkit-backdrop-filter:saturate(180%) blur(24px);backdrop-filter:saturate(180%) blur(24px);border-top:.5px solid var(--sep);padding-bottom:env(safe-area-inset-bottom)}
@@ -293,6 +299,17 @@ const PHYSIO=[
   {id:'db',name:'Dead bug',tag:'Core'},
   {id:'ck',name:'Cushion kneeling',tag:'Mobility'}
 ];
+const PXART=(()=>{const L='stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"',P='stroke="var(--pink)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"',F='stroke="var(--text3)" stroke-width="2" stroke-linecap="round"';
+const w=b=>`<svg viewBox="0 0 84 84" class="pxa">${b}</svg>`;
+return{
+ext:w(`<circle cx="42" cy="15" r="7" ${L}/><path d="M42 22v30M30 28h24M30 28v16h-13M54 28v16h13M42 52l-7 22M42 52l7 22" ${L}/><path d="M17 44Q42 56 67 44" ${P}/><path d="M11 39l-5 5 5 5M73 39l5 5-5 5" ${P}/>`),
+pa:w(`<circle cx="42" cy="14" r="7" ${L}/><path d="M42 21v31M13 29h58M42 52l-7 22M42 52l7 22" ${L}/><path d="M13 29Q42 40 71 29" ${P}/><path d="M9 24l-5 5 5 5M75 24l5 5-5 5" ${P}/>`),
+ws:w(`<rect x="8" y="6" width="68" height="74" rx="6" fill="var(--fill)"/><circle cx="42" cy="24" r="6" ${L}/><path d="M42 30v28M32 36h20M32 36H22V22M52 36h10V22M42 58l-6 18M42 58l6 18" ${L}/><path d="M18 15l4-5 4 5M58 15l4-5 4 5" ${P}/>`),
+hf:w(`<path d="M4 74h76" ${F}/><circle cx="38" cy="18" r="6" ${L}/><path d="M38 25v27M38 30l7 12M38 52l-14 22-13-4M38 52h18v22h7" ${L}/><path d="M44 58l6 4-6 4" ${P}/>`),
+gb:w(`<path d="M4 74h76" ${F}/><circle cx="11" cy="64" r="6" ${L}/><path d="M18 68l26-18 16-4 4 26h6M18 70l18 3" ${L}/><path d="M44 42V28M40 33l4-5 4 5" ${P}/>`),
+db:w(`<path d="M4 74h76" ${F}/><circle cx="11" cy="63" r="6" ${L}/><path d="M18 65h30M23 65V40M27 65L12 48M48 65V46h16M48 65l28-5" ${L}/><path d="M66 54l8 6M14 40l-4 6" ${P}/>`),
+ck:w(`<path d="M4 76h76" ${F}/><rect x="14" y="64" width="46" height="10" rx="5" fill="color-mix(in srgb,var(--pink) 30%,transparent)" stroke="var(--pink)" stroke-width="2"/><circle cx="42" cy="14" r="6" ${L}/><path d="M42 21v22M42 26l6 14M42 43v21H20" ${L}/>`)
+}})();
 const SUPPS=[['elec','Electrolyte'],['creat','Creatine'],['vitd','Vitamin D'],['mag','Magnesium']];
 
 /* ---------- dates ---------- */
@@ -335,7 +352,7 @@ const recW=k=>S.days[k]||(S.days[k]={});
 /* ---------- scoring ---------- */
 function hasEve(r){
   if(!r)return false;
-  return ['steps','kcal','protein','water'].some(f=>r[f]>0)||['gym','run','sport','physio','skip','elec','creat','vitd','mag','zeroBroken','sleep','hunger'].some(f=>r[f])||r.alcohol>0||!!(r.notes&&r.notes.trim())||!!(r.pain&&Object.keys(r.pain).length);
+  return ['steps','kcal','protein','water'].some(f=>r[f]>0)||['gym','run','sport','physio','skip','elec','creat','vitd','mag','zeroBroken','sleep','hunger'].some(f=>r[f])||r.alcohol>0||!!(r.notes&&r.notes.trim())||!!(r.pain&&Object.keys(r.pain).length)||!!(r.pxn&&Object.values(r.pxn).some(v=>v&&v.trim()));
 }
 const zeroOK=r=>!r.zeroBroken&&!(r.alcohol>0);
 const suppOK=r=>!!(r.elec&&r.creat&&r.vitd&&r.mag);
@@ -412,6 +429,7 @@ const mKey=k=>k.slice(0,7);
 function firstMon(k){const d=pd(k.slice(0,8)+'01');while(d.getDay()!==1)d.setDate(d.getDate()+1);return dk(d)}
 function monthlyDue(k){k=k||todayK();const m=S.monthly[mKey(k)];return k>=firstMon(k)&&!(m&&m.waist)}
 const mList=()=>Object.keys(S.monthly).sort().map(m=>Object.assign({m},S.monthly[m])).filter(x=>x.waist||x.photo);
+function pxLast(id,before){const ks=Object.keys(S.days).filter(k=>k<before).sort().reverse();for(const k of ks){const r=S.days[k];const n=r.pxn&&r.pxn[id]&&r.pxn[id].trim(),pv=r.pain&&r.pain[id];if(n||pv!=null)return{k,n,pv}}return null}
 const painVals=r=>r&&r.pain?Object.values(r.pain).filter(v=>v!=null):[];
 const SLEEP_L=['','Awful','Poor','OK','Good','Great'],HUNGER_L=['','Fine','Mild','Hungry','Very','Starving'];
 function tooFast(){const tr=trend();return tr&&tr.src==='last 4 weeks'&&tr.r<-1.0?tr:null}
@@ -430,8 +448,8 @@ function dailyReport(k){
   if(p.sport)L.push(`Football / golf: ${r.sport?'yes':'no'}`);
   L.push(`Steps: ${r.steps?thou(r.steps):'not logged'} (target ${thou(stepsT(k))})`);
   L.push(`Physio: ${r.physio?'done':'not done'}`);
-  const pv=PHYSIO.filter(x=>r.pain&&r.pain[x.id]!=null);
-  if(pv.length)L.push(`Physio pain (0–10): ${pv.map(x=>`${x.name} ${r.pain[x.id]}`).join(' · ')}`);
+  const pv=PHYSIO.filter(x=>(r.pain&&r.pain[x.id]!=null)||(r.pxn&&r.pxn[x.id]&&r.pxn[x.id].trim()));
+  pv.forEach(x=>{const a=[];if(r.pxn&&r.pxn[x.id]&&r.pxn[x.id].trim())a.push(r.pxn[x.id].trim());if(r.pain&&r.pain[x.id]!=null)a.push(`pain ${r.pain[x.id]}/10`);L.push(`  – ${x.name}: ${a.join(' · ')}`)});
   L.push(`Sleep: ${r.sleep?r.sleep+'/5 ('+SLEEP_L[r.sleep]+')':'not logged'}`);
   L.push(`Hunger: ${r.hunger?r.hunger+'/5 ('+HUNGER_L[r.hunger]+')':'not logged'}`);
   L.push('');
@@ -772,9 +790,12 @@ function rPhysio(){
   <div class="card"><div class="tiles">${tile('physioToday',done?'Done today':'Mark done for today',done?'Nice. Streak protected.':'Shoulders are the priority',IC.ok.replace('fill="currentColor"','fill="#fff"'),'var(--indigo)',done)}</div></div>
   <div class="sec">Routine <span class="r">pain: 0 none · 10 worst</span></div><div class="list">`;
   PHYSIO.forEach(x=>{const d=S.physio[x.id]||{};
-    h+=`<div class="px"><button class="ph" data-ph="${x.id}" aria-label="Add photo">${d.photo?`<img src="${d.photo}" alt="">`:IC.camera}</button>
+    const last=pxLast(x.id,t),tn=((rec(t).pxn||{})[x.id])||'';
+    h+=`<div class="px"><button class="ph" data-ph="${x.id}" aria-label="Add photo">${d.photo?`<img src="${d.photo}" alt="">`:`${PXART[x.id]}<span class="phb">${IC.camera}</span>`}</button>
       <div class="tx"><div class="t1">${x.name}<span class="tag">${x.tag}</span></div>
-      <input data-pi="${x.id}" placeholder="e.g. 2 × 15 each arm, or 60s" value="${esc(d.instr||'')}">
+      <input data-pi="${x.id}" class="pinstr" placeholder="Plan · e.g. 2 × 15 each arm, or 60s" value="${esc(d.instr||'')}">
+      <input data-pn="${x.id}" placeholder="Today · what you did" value="${esc(tn)}">
+      ${last?`<div class="plast">Last · ${diffD(last.k,t)===1?'yesterday':fmtD(last.k)}${last.n?': '+esc(last.n):''}${last.pv!=null?` · pain ${last.pv}/10`:''}</div>`:''}
       ${(()=>{const v=(rec(t).pain||{})[x.id];return `<div class="pain"><div class="pl"><span>Pain today</span><b class="${v==null?'unset':''}" data-pv="${x.id}">${v==null?'Not rated · tap for 0':v+'/10'}</b></div><input type="range" min="0" max="10" step="1" data-pain="${x.id}" value="${v??0}" class="${v==null?'unset':''}" aria-label="Pain for ${x.name}"></div>`})()}
       </div></div>`});
   h+=`</div></div>`;
@@ -855,6 +876,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('input',e=>{
   const el=e.target;
   if(el.dataset.pi){(S.physio[el.dataset.pi]=S.physio[el.dataset.pi]||{}).instr=el.value;save();return}
+  if(el.dataset.pn){const r=recW(todayK());r.pxn=r.pxn||{};r.pxn[el.dataset.pn]=el.value;save();return}
   if(el.dataset.pain){const r=recW(todayK());r.pain=r.pain||{};r.pain[el.dataset.pain]=+el.value;r.painAvg=Math.round(mean(painVals(r))*10)/10;el.classList.remove('unset');const b=app.querySelector(`[data-pv="${el.dataset.pain}"]`);if(b){b.textContent=el.value+'/10';b.classList.remove('unset')}save();return}
   if(el.dataset.mw!==undefined){const t=todayK(),m=S.monthly[mKey(t)]=S.monthly[mKey(t)]||{};const v=parseFloat(el.value.replace(',','.'));if(isNaN(v))delete m.waist;else{m.waist=v;m.d=t}save();return}
   const f=el.dataset.f;if(!f)return;const r=recW(view.day);
