@@ -298,7 +298,9 @@ const PHYSIO=[
   {id:'hf',name:'Hip flexor stretch',tag:'Hips'},
   {id:'gb',name:'Glute bridge',tag:'Hips'},
   {id:'db',name:'Dead bug',tag:'Core'},
-  {id:'ck',name:'Cushion kneeling',tag:'Mobility'}
+  {id:'ck',name:'Cushion kneeling',tag:'Mobility'},
+  {id:'cr',name:'Calf raises',tag:'Lower legs'},
+  {id:'tr',name:'Toe raises',tag:'Lower legs',hint:'Back against a wall, heels about a foot out'}
 ];
 const PXART=(()=>{const L='stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"',P='stroke="var(--pink)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"',F='stroke="var(--text3)" stroke-width="2" stroke-linecap="round"';
 const w=b=>`<svg viewBox="0 0 84 84" class="pxa">${b}</svg>`;
@@ -309,6 +311,8 @@ ws:w(`<rect x="8" y="6" width="68" height="74" rx="6" fill="var(--fill)"/><circl
 hf:w(`<path d="M4 74h76" ${F}/><circle cx="38" cy="18" r="6" ${L}/><path d="M38 25v27M38 30l7 12M38 52l-14 22-13-4M38 52h18v22h7" ${L}/><path d="M44 58l6 4-6 4" ${P}/>`),
 gb:w(`<path d="M4 74h76" ${F}/><circle cx="11" cy="64" r="6" ${L}/><path d="M18 68l26-18 16-4 4 26h6M18 70l18 3" ${L}/><path d="M44 42V28M40 33l4-5 4 5" ${P}/>`),
 db:w(`<path d="M4 74h76" ${F}/><circle cx="11" cy="63" r="6" ${L}/><path d="M18 65h30M23 65V40M27 65L12 48M48 65V46h16M48 65l28-5" ${L}/><path d="M66 54l8 6M14 40l-4 6" ${P}/>`),
+cr:w(`<path d="M4 76h76" ${F}/><circle cx="42" cy="12" r="6" ${L}/><path d="M42 18v32M42 24l-3 20M42 50v20l9 6" ${L}/><path d="M30 68V54M26 58l4-5 4 5" ${P}/>`),
+tr:w(`<rect x="6" y="4" width="9" height="72" rx="2" fill="var(--fill)"/><path d="M15 76h65" ${F}/><circle cx="22" cy="13" r="6" ${L}/><path d="M21 20l9 28M24 28l4 18M30 48l10 25 10-7" ${L}/><path d="M56 64V52M52 56l4-5 4 5" ${P}/>`),
 ck:w(`<path d="M4 76h76" ${F}/><rect x="14" y="64" width="46" height="10" rx="5" fill="color-mix(in srgb,var(--pink) 30%,transparent)" stroke="var(--pink)" stroke-width="2"/><circle cx="42" cy="14" r="6" ${L}/><path d="M42 21v22M42 26l6 14M42 43v21H20" ${L}/>`)
 }})();
 const SUPPS=[['elec','Electrolyte'],['creat','Creatine'],['vitd','Vitamin D'],['mag','Magnesium']];
@@ -796,8 +800,8 @@ function rPhysio(){
   PHYSIO.forEach(x=>{const d=S.physio[x.id]||{};
     const last=pxLast(x.id,t),tn=((rec(t).pxn||{})[x.id])||'';
     h+=`<div class="px"><div class="ph">${PXART[x.id]}</div>
-      <div class="tx"><div class="t1">${x.name}<span class="tag">${x.tag}</span></div>
-      <input data-pi="${x.id}" class="pinstr" placeholder="Plan · e.g. 2 × 15 each arm, or 60s" value="${esc(d.instr||'')}">
+      <div class="tx"><div class="t1">${x.name}<span class="tag">${x.tag}</span></div>${x.hint?`<div class="plast" style="margin-top:3px">${x.hint}</div>`:''}
+      <input data-pi="${x.id}" class="pinstr" placeholder="Plan · e.g. 2 × 15, or 60s" value="${esc(d.instr||'')}">
       <input data-pn="${x.id}" placeholder="Today · what you did" value="${esc(tn)}">
       ${last?`<div class="plast">Last · ${diffD(last.k,t)===1?'yesterday':fmtD(last.k)}${last.n?': '+esc(last.n):''}${last.pv!=null?` · pain ${last.pv}/10`:''}</div>`:''}
       ${(()=>{const v=(rec(t).pain||{})[x.id];return `<div class="pain"><div class="pl"><span>Pain today</span><b class="${v==null?'unset':''}" data-pv="${x.id}">${v==null?'Not rated · tap for 0':v+'/10'}</b></div><input type="range" min="0" max="10" step="1" data-pain="${x.id}" value="${v??0}" class="${v==null?'unset':''}" aria-label="Pain for ${x.name}"></div>`})()}
