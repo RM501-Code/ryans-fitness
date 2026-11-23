@@ -342,6 +342,7 @@ function load(){
   if(!S||typeof S!=='object'||!S.days)S={days:{},physio:{}};
   if(!S.physio)S.physio={};
   if(!S.monthly){S.monthly=JSON.parse(JSON.stringify(SEED_M))}
+  if(!S.seeded3){const r=S.days['2026-09-22']=S.days['2026-09-22']||{};if(!(r.waist>0))r.waist=41.73;S.seeded3=true;save()}
   if(!S.seeded2){for(const k in SEED2){const r=S.days[k]=S.days[k]||{};if(!(r.w>0)){r.w=SEED2[k].w;r.bf=SEED2[k].bf}}S.seeded2=true;save()}
   if(!S.seeded){for(const k in SEED){S.days[k]=Object.assign({},SEED[k],S.days[k]||{})}S.seeded=true;save()}
 }
@@ -427,8 +428,8 @@ const nextGoal=()=>{const t=todayK();return GOALS.find(g=>!g.event&&g.d>=t)||nul
 const nextWeightGoal=()=>{const t=todayK();return GOALS.find(g=>g.w&&g.d>=t)||null};
 const mKey=k=>k.slice(0,7);
 function firstMon(k){const d=pd(k.slice(0,8)+'01');while(d.getDay()!==1)d.setDate(d.getDate()+1);return dk(d)}
-function monthlyDue(k){k=k||todayK();const m=S.monthly[mKey(k)];return k>=firstMon(k)&&!(m&&m.waist)}
-const mList=()=>Object.keys(S.monthly).sort().map(m=>Object.assign({m},S.monthly[m])).filter(x=>x.waist||x.photo);
+function monthlyDue(k){k=k||todayK();const m=S.monthly[mKey(k)];return k>=firstMon(k)&&!(m&&m.photo)}
+const mList=()=>Object.keys(S.monthly).sort().map(m=>{const x=Object.assign({m},S.monthly[m]);if(!x.waist){const w=pts('waist').find(p=>p.k.startsWith(m));if(w)x.waist=w.v}return x}).filter(x=>x.photo);
 function pxLast(id,before){const ks=Object.keys(S.days).filter(k=>k<before).sort().reverse();for(const k of ks){const r=S.days[k];const n=r.pxn&&r.pxn[id]&&r.pxn[id].trim(),pv=r.pain&&r.pain[id];if(n||pv!=null)return{k,n,pv}}return null}
 const painVals=r=>r&&r.pain?Object.values(r.pain).filter(v=>v!=null):[];
 const SLEEP_L=['','Awful','Poor','OK','Good','Great'],HUNGER_L=['','Fine','Mild','Hungry','Very','Starving'];
@@ -441,6 +442,7 @@ function dailyReport(k){
   const L=[`Daily Evening Check-In (${fmtD(k)} – ${planName(k)}${rel?', relaxed day':''})`];
   L.push(`Morning Weight: ${r.w?f1(r.w)+'kg':'not logged'}`);
   L.push(`Morning Body Fat: ${r.bf?f1(r.bf)+'%':'not logged'}`);
+  if(r.waist||pd(k).getDay()===1){const lw=pts('waist').filter(x=>x.k<k).pop();L.push(`Waist: ${r.waist?r.waist+'in'+(lw?` (${sgn(r.waist-lw.v,x=>x.toFixed(2))}in vs ${fmtS(lw.k)})`:''):'not logged'}`)}
   L.push('');
   const sl=(f)=>p[f]?(isSkip(r,f)?`${p[f]} – skipped (${r.skip[f].toLowerCase()})`:`${p[f]} ${yn(r[f])}`):'not planned';
   L.push(`Gym: ${sl('gym')}`);
@@ -501,7 +503,7 @@ function weeklyReport(){
   L.push(`Weight (7-day avg): ${o.w!=null?f1(o.w)+'kg':'no weigh-ins'}${o.w!=null&&o.wPrev!=null?` (${sgn(o.w-o.wPrev)}kg vs last week)`:''}`);
   L.push(`Body fat (7-day avg): ${o.bf!=null?f1(o.bf)+'%':'—'}${o.bf!=null&&o.bfPrev!=null?` (${sgn(o.bf-o.bfPrev)} vs last week)`:''}`);
   const tr=trend();if(tr)L.push(`Trend: ${sgn(tr.r,f2)}kg/wk (${tr.src})${tooFast()?' – faster than 1kg/wk, muscle-loss risk':''}`);
-  const ml=mList();if(ml.length){const a=ml[0],b=ml[ml.length-1];L.push(`Waist: ${b.waist}in (${fmtS(b.d)})${ml.length>1?`, ${sgn(b.waist-a.waist,x=>x.toFixed(2))}in since ${fmtS(a.d)}`:''}`)}
+  const wp=pts('waist');if(wp.length){const a=wp[0],b=wp[wp.length-1],pv=wp[wp.length-2];L.push(`Waist: ${b.v}in (${fmtS(b.k)})${pv?` · ${sgn(b.v-pv.v,x=>x.toFixed(2))}in vs ${fmtS(pv.k)}${pv!==a?` · ${sgn(b.v-a.v,x=>x.toFixed(2))}in since ${fmtS(a.k)}`:''}`:''}`)}
   L.push('');
   L.push(`Sessions: ${o.sessDone}/${o.sessPlan} planned${o.skips.length?` · ${o.skips.length} skipped (${[...new Set(o.skips)].join(', ')})`:''}`);
   if(o.skips.length>=3)L.push(`⚠ ${o.skips.length} skips this week – that's a pattern, not a one-off`);
@@ -597,8 +599,8 @@ function rateRow(f,label,labels,col){const v=rec(view.day)[f];
   return `<div class="rate"><div class="fl"><span>${label}</span><b>${v?labels[v]:''}</b></div><div class="rbtns">${[1,2,3,4,5].map(i=>`<button class="rb ${v===i?'on':''}" data-rate="${f}" data-v="${i}" style="--c:${col}">${i}</button>`).join('')}</div><div class="rends"><span>${labels[1]}</span><span>${labels[5]}</span></div></div>`}
 function showMonthly(){const t=todayK();if(view.day!==t)return false;const m=S.monthly[mKey(t)];return view.forceMonthly||monthlyDue(t)||(m&&m.d===t)}
 function monthlyCard(){const t=todayK(),m=S.monthly[mKey(t)]||{},prev=mList().filter(x=>x.m<mKey(t)).pop();
-  return `<div class="card due"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px"><div style="font-weight:700;font-size:17px">Monthly check-in</div><div class="small muted">${MON[pd(t).getMonth()]} · 1 minute</div></div>
-  <div class="mrow"><label class="field"><div class="fl"><span>Waist</span><span class="tg">${prev?'last '+prev.waist:''}</span></div><div class="row"><input data-mw inputmode="decimal" enterkeyhint="done" placeholder="0.00" value="${m.waist??''}"><span class="u">in</span></div><div class="hint">Measure the same way as 22 Sept</div></label>
+  return `<div class="card due"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px"><div style="font-weight:700;font-size:17px">Monthly photo</div><div class="small muted">${MON[pd(t).getMonth()]} · 1 minute</div></div>
+  <div class="mrow"><div class="field" style="display:flex;align-items:center"><div class="small muted" style="line-height:1.4">Progress photo for ${MON[pd(t).getMonth()]}. Waist is logged every Monday on Today.</div></div>
   <button class="mph" data-mph aria-label="Progress photo">${m.photo?`<img src="${m.photo}" alt="">`:`<span style="display:grid;place-items:center;gap:4px">${IC.camera}Photo</span>`}</button></div>
   <div class="small muted" style="margin:10px 4px 0">Photo: same spot, same light, morning. Stays on your phone.</div></div>`}
 function rToday(){
@@ -615,7 +617,7 @@ function rToday(){
   <div class="card"><div class="grid2">
     ${fieldHTML('w','Weight','kg','0.0','decimal',wAvg!=null?'7d '+f1(wAvg):'')}
     ${fieldHTML('bf','Body fat','%','0.0','decimal','')}
-  </div></div>
+  </div>${pd(k).getDay()===1||r.waist?`<div style="margin-top:10px">${(()=>{const lw=pts('waist').filter(x=>x.k<k).pop();return fieldHTML('waist','Waist · Mondays','in','0.00','decimal',lw?'last '+lw.v:'')})()}</div>`:''}</div>
 
   <div class="sec">Training</div>
   <div class="card"><div class="tiles">`;
@@ -735,6 +737,8 @@ function rTrends(){
     <div class="legend" style="color:var(--orange)"><span><i class="lg-dot"></i>Daily</span><span><i class="lg-line"></i>7-day avg</span></div></div>`;
   const hasPain=pts('painAvg').length>0;
   if(hasPain)h+=`<div class="card"><div class="chead"><div><div class="t">Physio pain · 7-day avg</div><div class="v rnd num">${current('painAvg')!=null?f1(current('painAvg')):'—'}<small>/10</small></div></div><div class="d muted" style="font-weight:500;max-width:150px">Should trend down. Flat after 6 weeks = see the physio</div></div><div class="chart" id="cP"></div><div class="legend" style="color:var(--red)"><span><i class="lg-dot"></i>Daily avg</span><span><i class="lg-line"></i>7-day avg</span></div></div>`;
+  const wp=pts('waist');
+  if(wp.length)h+=`<div class="card"><div class="chead"><div><div class="t">Waist · Mondays</div><div class="v rnd num">${wp[wp.length-1].v}<small>in</small></div></div><div class="d ${wp.length>1&&wp[wp.length-1].v<wp[0].v?'good':'muted'}">${wp.length>1?sgn(wp[wp.length-1].v-wp[0].v,x=>x.toFixed(2))+' in':''}<div class="muted small" style="font-weight:500">since ${fmtS(wp[0].k)}</div></div></div><div class="chart" id="cWa"></div></div>`;
   const ml=mList();
   h+=`<div class="sec">Monthly check-ins <button class="linkbtn r" data-mnew style="color:var(--blue);font-weight:600">Log now</button></div><div class="list">${ml.length?ml.slice().reverse().map((x,i,a)=>{const pr=a[i+1];return `<div class="li">${x.photo?`<img class="thumb" src="${x.photo}" data-mopen="${x.m}" alt="">`:`<div class="thumb" style="background:var(--fill2)"></div>`}<div class="tx"><div class="t1">${fmtD(x.d)}</div><div class="t2">${x.photo?'Tap photo to view':'No photo'}</div></div><div class="rt rnd num">${x.waist?x.waist+'″':'—'}<small class="${pr&&x.waist&&pr.waist?(x.waist<pr.waist?'good':'bad'):''}">${pr&&x.waist&&pr.waist?sgn(x.waist-pr.waist,v=>v.toFixed(2))+'″':'baseline'}</small></div></div>`}).join(''):'<div class="li"><div class="tx muted">None yet</div></div>'}</div>`;
   if(first&&cw!=null){
@@ -746,8 +750,9 @@ function rTrends(){
   drawChart(document.getElementById('cW'),'w','var(--blue)','kg',nextWeightGoal());
   drawChart(document.getElementById('cB'),'bf','var(--orange)','%',null);
   if(hasPain)drawChart(document.getElementById('cP'),'painAvg','var(--red)','/10',null);
+  if(document.getElementById('cWa'))drawChart(document.getElementById('cWa'),'waist','var(--pink)','in',null,true);
 }
-function drawChart(el,f,col,unit,goal){
+function drawChart(el,f,col,unit,goal,raw){
   const t=todayK(),all=pts(f).filter(p=>p.k<=t);
   if(!all.length){el.innerHTML='<div class="muted small" style="padding:30px 0;text-align:center">No data yet</div>';return}
   let start=view.range?addD(t,-view.range+1):all[0].k;if(start<all[0].k)start=all[0].k;
@@ -756,7 +761,7 @@ function drawChart(el,f,col,unit,goal){
   const span=Math.max(diffD(start,t),1);
   const X=k=>pl+(diffD(start,k)/span)*(W-pl-pr);
   // rolling avg each day
-  const avg=[];for(let i=0;i<=span;i++){const k=addD(start,i);const a=avgAt(k,f);avg.push(a!=null?{k,v:a}:null)}
+  const avg=[];if(raw)data.forEach(p=>avg.push(p));else for(let i=0;i<=span;i++){const k=addD(start,i);const a=avgAt(k,f);avg.push(a!=null?{k,v:a}:null)}
   const vals=data.map(p=>p.v).concat(avg.filter(Boolean).map(a=>a.v));
   if(goal&&f==='w')vals.push(goal.w);
   if(!vals.length){el.innerHTML='<div class="muted small" style="padding:30px 0;text-align:center">No data in this range</div>';return}
@@ -767,7 +772,7 @@ function drawChart(el,f,col,unit,goal){
   for(let v=lo;v<=hi+1e-9;v+=stepv){s+=`<line class="gl" x1="${pl}" x2="${W-pr}" y1="${Y(v)}" y2="${Y(v)}"/><text class="ax" x="${W-pr+6}" y="${Y(v)+4}">${stepv<1?v.toFixed(1):Math.round(v)}</text>`}
   const ticks=4;for(let i=0;i<ticks;i++){const k=addD(start,Math.round(span*i/(ticks-1)));const x=X(k);s+=`<text class="ax" x="${x}" y="${H-6}" text-anchor="${i===0?'start':i===ticks-1?'end':'middle'}">${fmtS(k)}</text>`}
   if(goal&&f==='w'&&goal.w>=lo&&goal.w<=hi){s+=`<line x1="${pl}" x2="${W-pr}" y1="${Y(goal.w)}" y2="${Y(goal.w)}" stroke="var(--text2)" stroke-width="1.5" stroke-dasharray="4 4"/><text class="ax" x="${pl+4}" y="${Y(goal.w)-6}" style="font-weight:600">${goal.w}kg · ${fmtS(goal.d)}</text>`}
-  data.forEach(p=>{s+=`<circle cx="${X(p.k)}" cy="${Y(p.v)}" r="4" fill="${col}" fill-opacity=".35"/>`});
+  data.forEach(p=>{s+=`<circle cx="${X(p.k)}" cy="${Y(p.v)}" r="${raw?5:4}" fill="${col}" fill-opacity="${raw?1:.35}"/>`});
   let d='',pen=false;avg.forEach(a=>{if(!a){pen=false;return}d+=(pen?'L':'M')+X(a.k).toFixed(1)+' '+Y(a.v).toFixed(1);pen=true});
   s+=`<path d="${d}" fill="none" stroke="${col}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
   s+=`<line id="cx${f}" x1="0" x2="0" y1="${pt}" y2="${H-pb}" stroke="var(--text3)" stroke-width="1" opacity="0"/><circle id="cd${f}" r="5.5" fill="${col}" stroke="var(--card)" stroke-width="2" opacity="0"/></svg><div class="tip" id="tp${f}"></div>`;
@@ -777,7 +782,7 @@ function drawChart(el,f,col,unit,goal){
     let best=null,bd=1e9;data.forEach(p=>{const dd=Math.abs(X(p.k)-x);if(dd<bd){bd=dd;best=p}});if(!best)return;
     const px=X(best.k),a=avgAt(best.k,f);
     cx.setAttribute('x1',px);cx.setAttribute('x2',px);cx.setAttribute('opacity',1);cd.setAttribute('cx',px);cd.setAttribute('cy',Y(best.v));cd.setAttribute('opacity',1);
-    tip.innerHTML=`<span class="muted">${fmtD(best.k)}</span><br><b class="num">${f1(best.v)}${unit}</b>${a!=null?` <span class="muted">· avg ${f1(a)}</span>`:''}`;
+    tip.innerHTML=`<span class="muted">${fmtD(best.k)}</span><br><b class="num">${raw?best.v:f1(best.v)}${unit}</b>${a!=null&&!raw?` <span class="muted">· avg ${f1(a)}</span>`:''}`;
     const left=Math.min(Math.max(px*rc.width/W,60),rc.width-60);tip.style.left=left+'px';tip.classList.add('show')};
   const end=()=>{tip.classList.remove('show');cx.setAttribute('opacity',0);cd.setAttribute('opacity',0)};
   svg.addEventListener('pointerdown',move);svg.addEventListener('pointermove',move);svg.addEventListener('pointerleave',end);svg.addEventListener('pointerup',e=>{if(e.pointerType!=='mouse')setTimeout(end,1600)});
@@ -825,7 +830,7 @@ function backup(){
 function restore(){
   const m=modal(`<h3>Restore</h3><p>Replaces everything on this phone with the backup.</p><button class="btn" id="rsF">Choose backup file</button>
     <textarea id="rsT" placeholder="…or paste backup text here" style="margin-top:12px"></textarea><button class="btn sec2" id="rsP" style="margin-top:10px">Restore pasted text</button><button class="btn sec2" data-close>Cancel</button>`);
-  const apply=txt=>{try{const d=JSON.parse(txt);if(!d||!d.days)throw 0;S=d;S.seeded=true;S.seeded2=true;if(!S.physio)S.physio={};save();m.remove();render();toast('Restored')}catch(e){toast('That backup didn’t read properly')}};
+  const apply=txt=>{try{const d=JSON.parse(txt);if(!d||!d.days)throw 0;S=d;S.seeded=true;S.seeded2=true;S.seeded3=true;if(!S.physio)S.physio={};save();m.remove();render();toast('Restored')}catch(e){toast('That backup didn’t read properly')}};
   m.querySelector('#rsF').onclick=()=>{const inp=document.getElementById('restoreIn');inp.onchange=e=>{const f=e.target.files[0];e.target.value='';if(!f)return;f.text().then(apply)};inp.click()};
   m.querySelector('#rsP').onclick=()=>apply(m.querySelector('#rsT').value);
 }
