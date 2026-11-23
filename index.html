@@ -597,7 +597,7 @@ function tgtState(f,k,r){
 }
 function rateRow(f,label,labels,col){const v=rec(view.day)[f];
   return `<div class="rate"><div class="fl"><span>${label}</span><b>${v?labels[v]:''}</b></div><div class="rbtns">${[1,2,3,4,5].map(i=>`<button class="rb ${v===i?'on':''}" data-rate="${f}" data-v="${i}" style="--c:${col}">${i}</button>`).join('')}</div><div class="rends"><span>${labels[1]}</span><span>${labels[5]}</span></div></div>`}
-function showMonthly(){const t=todayK();if(view.day!==t)return false;const m=S.monthly[mKey(t)];return view.forceMonthly||monthlyDue(t)||(m&&m.d===t)}
+function showMonthly(){return false;const t=todayK();if(view.day!==t)return false;const m=S.monthly[mKey(t)];return view.forceMonthly||monthlyDue(t)||(m&&m.d===t)}
 function monthlyCard(){const t=todayK(),m=S.monthly[mKey(t)]||{},prev=mList().filter(x=>x.m<mKey(t)).pop();
   return `<div class="card due"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px"><div style="font-weight:700;font-size:17px">Monthly photo</div><div class="small muted">${MON[pd(t).getMonth()]} · 1 minute</div></div>
   <div class="mrow"><div class="field" style="display:flex;align-items:center"><div class="small muted" style="line-height:1.4">Progress photo for ${MON[pd(t).getMonth()]}. Waist is logged every Monday on Today.</div></div>
@@ -739,8 +739,6 @@ function rTrends(){
   if(hasPain)h+=`<div class="card"><div class="chead"><div><div class="t">Physio pain · 7-day avg</div><div class="v rnd num">${current('painAvg')!=null?f1(current('painAvg')):'—'}<small>/10</small></div></div><div class="d muted" style="font-weight:500;max-width:150px">Should trend down. Flat after 6 weeks = see the physio</div></div><div class="chart" id="cP"></div><div class="legend" style="color:var(--red)"><span><i class="lg-dot"></i>Daily avg</span><span><i class="lg-line"></i>7-day avg</span></div></div>`;
   const wp=pts('waist');
   if(wp.length)h+=`<div class="card"><div class="chead"><div><div class="t">Waist · Mondays</div><div class="v rnd num">${wp[wp.length-1].v}<small>in</small></div></div><div class="d ${wp.length>1&&wp[wp.length-1].v<wp[0].v?'good':'muted'}">${wp.length>1?sgn(wp[wp.length-1].v-wp[0].v,x=>x.toFixed(2))+' in':''}<div class="muted small" style="font-weight:500">since ${fmtS(wp[0].k)}</div></div></div><div class="chart" id="cWa"></div></div>`;
-  const ml=mList();
-  h+=`<div class="sec">Monthly check-ins <button class="linkbtn r" data-mnew style="color:var(--blue);font-weight:600">Log now</button></div><div class="list">${ml.length?ml.slice().reverse().map((x,i,a)=>{const pr=a[i+1];return `<div class="li">${x.photo?`<img class="thumb" src="${x.photo}" data-mopen="${x.m}" alt="">`:`<div class="thumb" style="background:var(--fill2)"></div>`}<div class="tx"><div class="t1">${fmtD(x.d)}</div><div class="t2">${x.photo?'Tap photo to view':'No photo'}</div></div><div class="rt rnd num">${x.waist?x.waist+'″':'—'}<small class="${pr&&x.waist&&pr.waist?(x.waist<pr.waist?'good':'bad'):''}">${pr&&x.waist&&pr.waist?sgn(x.waist-pr.waist,v=>v.toFixed(2))+'″':'baseline'}</small></div></div>`}).join(''):'<div class="li"><div class="tx muted">None yet</div></div>'}</div>`;
   if(first&&cw!=null){
     h+=`<div class="sec">Totals</div><div class="stats"><div class="stat"><span>Start</span><b class="rnd num">${f1(first.v)}</b><i class="muted">${fmtS(first.k)}</i></div>
       <div class="stat"><span>Lost so far</span><b class="rnd num">${f1(first.v-cw)}</b><i class="muted">kg in ${Math.round(diffD(first.k,t)/7)} weeks</i></div></div>`;
@@ -796,7 +794,7 @@ function rPhysio(){
   <div class="sec">Routine <span class="r">pain: 0 none · 10 worst</span></div><div class="list">`;
   PHYSIO.forEach(x=>{const d=S.physio[x.id]||{};
     const last=pxLast(x.id,t),tn=((rec(t).pxn||{})[x.id])||'';
-    h+=`<div class="px"><button class="ph" data-ph="${x.id}" aria-label="Add photo">${d.photo?`<img src="${d.photo}" alt="">`:`${PXART[x.id]}<span class="phb">${IC.camera}</span>`}</button>
+    h+=`<div class="px"><div class="ph">${PXART[x.id]}</div>
       <div class="tx"><div class="t1">${x.name}<span class="tag">${x.tag}</span></div>
       <input data-pi="${x.id}" class="pinstr" placeholder="Plan · e.g. 2 × 15 each arm, or 60s" value="${esc(d.instr||'')}">
       <input data-pn="${x.id}" placeholder="Today · what you did" value="${esc(tn)}">
