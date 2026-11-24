@@ -317,7 +317,7 @@ ck:w(`<path d="M4 76h76" ${F}/><rect x="14" y="64" width="46" height="10" rx="5"
 }})();
 const SUPPS=[['elec','Electrolyte'],['creat','Creatine'],['vitd','Vitamin D'],['mag','Magnesium']];
 const ELEC_DAYS=[1,3,6,0];
-const suppsFor=k=>SUPPS.filter(([f])=>f!=='elec'||ELEC_DAYS.includes(pd(k).getDay()));
+const suppsFor=k=>SUPPS.filter(([f])=>f!=='elec'||ELEC_DAYS.includes(planDow(k)));
 
 /* ---------- dates ---------- */
 const pad=n=>String(n).padStart(2,'0');
@@ -338,7 +338,10 @@ const sgn=(n,f=f1)=>(n>0?'+':n<0?'−':'±')+f(Math.abs(n));
 const thou=n=>Math.round(n).toLocaleString('en-GB');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const mean=a=>a.reduce((s,x)=>s+x,0)/a.length;
-const planFor=k=>PLAN[pd(k).getDay()];
+// one-off swaps: date -> weekday whose plan to use (office-day changes)
+const SWAP={'2026-12-02':4,'2026-12-03':3,'2026-12-08':3,'2026-12-09':2};
+const planDow=k=>SWAP[k]!=null?SWAP[k]:pd(k).getDay();
+const planFor=k=>PLAN[planDow(k)];
 const stepsT=k=>planFor(k).run?8000:10000;
 const planName=k=>{const p=planFor(k);return [p.run,p.gym].filter(Boolean).join(' + ')||'Rest day'};
 
