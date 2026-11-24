@@ -809,8 +809,7 @@ function rPhysio(){
     const last=pxLast(x.id,t),tn=((rec(t).pxn||{})[x.id])||'';
     h+=`<div class="px"><div class="ph">${PXART[x.id]}</div>
       <div class="tx"><div class="t1">${x.name}<span class="tag">${x.tag}</span></div>${x.hint?`<div class="plast" style="margin-top:3px">${x.hint}</div>`:''}
-      <input data-pi="${x.id}" class="pinstr" placeholder="Plan · e.g. 2 × 15, or 60s" value="${esc(d.instr||'')}">
-      <input data-pn="${x.id}" placeholder="Today · what you did" value="${esc(tn)}">
+            <input data-pn="${x.id}" placeholder="Today · what you did" value="${esc(tn)}">
       ${last?`<div class="plast">Last · ${diffD(last.k,t)===1?'yesterday':fmtD(last.k)}${last.n?': '+esc(last.n):''}${last.pv!=null?` · pain ${last.pv}/10`:''}</div>`:''}
       ${(()=>{const v=(rec(t).pain||{})[x.id];return `<div class="pain"><div class="pl"><span>Pain today</span><b class="${v==null?'unset':''}" data-pv="${x.id}">${v==null?'Not rated · tap for 0':v+'/10'}</b></div><input type="range" min="0" max="10" step="1" data-pain="${x.id}" value="${v??0}" class="${v==null?'unset':''}" aria-label="Pain for ${x.name}"></div>`})()}
       </div></div>`});
