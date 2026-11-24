@@ -471,6 +471,12 @@ function dailyReport(k){
   L.push('');
   L.push(`Notes: ${r.notes&&r.notes.trim()?r.notes.trim():'—'}`);
   L.push('');
+  const ng=nextGoal(),wg=nextWeightGoal();
+  if(ng){const gi=goalInfo(ng);L.push(`Next up: ${ng.name} – ${gi.days} day${gi.days===1?'':'s'} (${fmtD(ng.d)}) · target ${ng.w?ng.w+'kg':ng.sub}`)}
+  if(wg){const gi=goalInfo(wg);let t=`Next weight target: ${wg.w}kg by ${fmtD(wg.d)} (${wg.name}) – ${gi.days} days`;
+    if(gi.cur!=null)t+=` · now ${f1(gi.cur)}kg (7d avg) · ${gi.gap>0?f1(gi.gap)+'kg to go · need '+f2(gi.need)+'kg/wk':'target hit'}${gi.rate!=null&&gi.gap>0?' vs '+f2(-gi.rate)+'kg/wk current':''}`;
+    L.push(t)}
+  L.push('');
   L.push('Claude, am I on track?');
   return L.join('\n');
 }
