@@ -316,6 +316,8 @@ tr:w(`<rect x="6" y="4" width="9" height="72" rx="2" fill="var(--fill)"/><path d
 ck:w(`<path d="M4 76h76" ${F}/><rect x="14" y="64" width="46" height="10" rx="5" fill="color-mix(in srgb,var(--pink) 30%,transparent)" stroke="var(--pink)" stroke-width="2"/><circle cx="42" cy="14" r="6" ${L}/><path d="M42 21v22M42 26l6 14M42 43v21H20" ${L}/>`)
 }})();
 const SUPPS=[['elec','Electrolyte'],['creat','Creatine'],['vitd','Vitamin D'],['mag','Magnesium']];
+const ELEC_DAYS=[1,3,6,0];
+const suppsFor=k=>SUPPS.filter(([f])=>f!=='elec'||ELEC_DAYS.includes(pd(k).getDay()));
 
 /* ---------- dates ---------- */
 const pad=n=>String(n).padStart(2,'0');
@@ -361,7 +363,7 @@ function hasEve(r){
   return ['steps','kcal','protein','water'].some(f=>r[f]>0)||['gym','run','sport','physio','skip','elec','creat','vitd','mag','zeroBroken','sleep','hunger'].some(f=>r[f])||r.alcohol>0||!!(r.notes&&r.notes.trim())||!!(r.pain&&Object.keys(r.pain).length)||!!(r.pxn&&Object.values(r.pxn).some(v=>v&&v.trim()));
 }
 const zeroOK=r=>!r.zeroBroken&&!(r.alcohol>0);
-const suppOK=r=>!!(r.elec&&r.creat&&r.vitd&&r.mag);
+const suppOK=(k,r)=>suppsFor(k).every(([f])=>!!r[f]);
 const isSkip=(r,f)=>!!(r&&r.skip&&r.skip[f]);
 const activeSess=(k,r)=>{const p=planFor(k);return['run','gym'].filter(f=>p[f]&&!isSkip(r,f))};
 const trainOK=(k,r)=>activeSess(k,r).every(f=>!!r[f]);
@@ -374,7 +376,7 @@ function boxes(k,r){
   if(!rel)b.push(['Calories',r.kcal>0&&r.kcal<=T.kcal]);
   b.push(['Protein',(r.protein||0)>=T.protein]);
   b.push(['Water',(r.water||0)>=T.water]);
-  b.push(['Supplements',suppOK(r)]);
+  b.push(['Supplements',suppOK(k,r)]);
   if(!rel)b.push(['Zero list',zeroOK(r)]);
   return b;
 }
@@ -463,7 +465,7 @@ function dailyReport(k){
   L.push(rel?'Calories: relaxed day':`Calories: ${r.kcal?thou(r.kcal):'not logged'} / ${thou(T.kcal)}`);
   L.push(`Protein: ${r.protein?Math.round(r.protein)+'g':'not logged'} / ${T.protein}g`);
   L.push(`Water: ${r.water?f2(r.water).replace(/0$/,'')+'L':'not logged'} / ${T.water}L`);
-  L.push(`Supplements: ${SUPPS.map(([f,n])=>`${n} ${yn(r[f])}`).join(' · ')}`);
+  L.push(`Supplements: ${suppsFor(k).map(([f,n])=>`${n} ${yn(r[f])}`).join(' · ')}`);
   L.push(`Alcohol: ${r.alcohol||0} drink${r.alcohol===1?'':'s'}`);
   if(rel)L.push('0 list: relaxed day');
   else L.push(`0 list: ${zeroOK(r)?'complete':'broken'+(()=>{const w=[];if(r.alcohol>0)w.push('alcohol');if(r.zeroBroken&&r.zeroWhat)w.push(r.zeroWhat.trim());else if(r.zeroBroken)w.push('not specified');return' ('+w.join(', ')+')'})()}`);
@@ -496,7 +498,7 @@ function weekStats(end){
   o.kcal=av('kcal',nonRel);o.kcalHit=nonRel.filter(k=>{const r=S.days[k];return r.kcal>0&&r.kcal<=T.kcal}).length;
   o.protein=av('protein');o.proteinHit=cnt((k,r)=>(r.protein||0)>=T.protein);
   o.water=av('water');o.waterHit=cnt((k,r)=>(r.water||0)>=T.water);
-  o.supps=cnt((k,r)=>suppOK(r));
+  o.supps=cnt((k,r)=>suppOK(k,r));
   o.sleep=av('sleep');o.hunger=av('hunger');
   const painAvg=ks=>{const v=ks.flatMap(k=>painVals(S.days[k]));return v.length?mean(v):null};
   o.pain=painAvg(keys);const pk=[];for(let i=13;i>=7;i--)pk.push(addD(end,-i));o.painPrev=painAvg(pk);
@@ -654,8 +656,8 @@ function rToday(){
     <div style="margin-top:10px">${stepper('water','Water · target 3.5L','L',r.water,true)}</div>
   </div>
 
-  <div class="sec">Supplements <button class="linkbtn r" data-allsupp style="color:var(--blue);font-weight:600">${SUPPS.every(([f])=>r[f])?'Clear':'All taken'}</button></div>
-  <div class="card"><div class="supps">${SUPPS.map(([f,n])=>`<button class="sup ${r[f]?'on':''}" data-t="${f}"><span>${n}</span><span class="chk">${IC.check}</span></button>`).join('')}</div></div>
+  <div class="sec">Supplements <button class="linkbtn r" data-allsupp style="color:var(--blue);font-weight:600">${suppsFor(k).every(([f])=>r[f])?'Clear':'All taken'}</button></div>
+  <div class="card"><div class="supps">${suppsFor(k).map(([f,n])=>`<button class="sup ${r[f]?'on':''}" data-t="${f}"><span>${n}</span><span class="chk">${IC.check}</span></button>`).join('')}</div></div>
 
   <div class="sec">Zero list ${rel?'<span class="r">relaxed day — not scored</span>':''}</div>
   <div class="card">`;
@@ -880,7 +882,7 @@ document.addEventListener('click',e=>{
     if(f==='water')r.water=Math.max(0,Math.round(((r.water||0)+d*.25)*100)/100);
     else r[f]=Math.max(0,(r[f]||0)+d);
     save();const y=window.scrollY;rToday();window.scrollTo(0,y);return}
-  if(ds.allsupp!==undefined){const r=recW(view.day);const all=SUPPS.every(([f])=>r[f]);SUPPS.forEach(([f])=>r[f]=!all);save();const y=window.scrollY;rToday();window.scrollTo(0,y);return}
+  if(ds.allsupp!==undefined){const r=recW(view.day);const sf=suppsFor(view.day);const all=sf.every(([f])=>r[f]);sf.forEach(([f])=>r[f]=!all);save();const y=window.scrollY;rToday();window.scrollTo(0,y);return}
   if(ds.copy){const txt=ds.copy==='daily'?dailyReport(view.tab==='today'?view.day:todayK()):weeklyReport();copyText(txt,'Copied — paste it into Claude');return}
   if(ds.range!==undefined){view.range=+ds.range;rTrends();return}
   if(ds.ph){photoFor=ds.ph;document.getElementById('photoIn').click();return}
