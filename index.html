@@ -641,7 +641,7 @@ function rToday(){
     if(isSkip(r,f))return `<button class="tile skipped" data-unskip="${f}"><span class="ic" style="background:var(--text3)">${icon}</span><span class="tx"><div class="t1">${name}</div><div class="t2">Skipped · ${esc(r.skip[f])} · not scored</div></span><span class="skipb">Undo</span></button>`;
     return tile(f,name,sub,icon,col,r[f]);};
   if(p.run)h+=sess('run',p.run,'Run','<span style="width:19px;height:19px;display:block">'+IC.run+'</span>','var(--green)');
-  if(p.gym)h+=sess('gym',p.gym,'Strong app','<span style="width:19px;height:19px;display:block">'+IC.gym+'</span>','var(--blue)');
+  if(p.gym)h+=sess('gym',p.gym,'RepCount','<span style="width:19px;height:19px;display:block">'+IC.gym+'</span>','var(--blue)');
   if(p.sport)h+=tile('sport',p.sport,'Optional · not scored','<span style="width:19px;height:19px;display:block">'+IC.ball+'</span>','var(--indigo)',r.sport);
   const canSkip=['run','gym'].filter(f=>p[f]&&!isSkip(r,f)&&!r[f]);
   if(canSkip.length)h+=`<button class="skiprow" data-skip>Can’t train today? <b>Skip a session</b></button>`;
